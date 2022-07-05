@@ -184,9 +184,15 @@ bool TCPSocket::write(const uint8_t* buf, const size_t buf_len, size_t& written)
   // handle partial sends
   while (written < buf_len)
   {
-    ssize_t sent = ::send(socket_fd_, buf + written, remaining, 0);
+    ssize_t sent = ::send(socket_fd_, buf + written, remaining, MSG_NOSIGNAL);
 
-    if (sent <= 0)
+    if (sent == EPIPE)
+    {
+      state_ = SocketState::Closed;
+      URCL_LOG_ERROR("Attempt to write to a socket after the connection was closed");
+      return false;
+    }
+    else if (sent <= 0)
     {
       URCL_LOG_ERROR("Sending data through socket failed.");
       return false;

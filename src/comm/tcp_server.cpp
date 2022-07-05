@@ -321,8 +321,13 @@ bool TCPServer::write(const int fd, const uint8_t* buf, const size_t buf_len, si
   // handle partial sends
   while (written < buf_len)
   {
-    ssize_t sent = ::send(fd, buf + written, remaining, 0);
+    ssize_t sent = ::send(fd, buf + written, remaining, MSG_NOSIGNAL);
 
+    if (sent == EPIPE)
+    {
+      handleDisconnect(fd);
+      return false;
+    }
     if (sent <= 0)
     {
       URCL_LOG_ERROR("Sending data through socket failed.");
